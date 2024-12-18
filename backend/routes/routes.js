@@ -4,17 +4,18 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth')
 const { userRegistration, login, viewProfile, updateProfile} = require('../controller/userController.js')
 const userModel = require('../models/userData.js');
-const {addRecipe, getRecipeByIngredients, editRecipe, listRecipies, getRecipeById, getRecipeByCategory, getRecipesPopular, getRecipeByName} = require('../controller/recipeController.js');
+const {addRecipe, getRecipeByIngredients, listRecipies, getRecipeById, getRecipeByCategory, getRecipesPopular, getRecipeByName} = require('../controller/recipeController.js');
 const {addWishlistRecipe, listWishlistRecipe} = require('../controller/wishlistController.js');
+const  uploadFields  = require('../middleware/uploadFields');
 
 router.post('/register', userRegistration);
 router.post('/login', login);
-router.post('/add',addRecipe);
+router.post('/add-recipe',uploadFields,addRecipe);
 
 // router.get('/logout', logout);
 
 // router.put('/update-profile', updateProfile);
-router.put('/edit-recipe/:id', editRecipe);
+// router.put('/edit-recipe/:id', editRecipe);
 
 router.get('/search-recipies', getRecipeByIngredients);
 router.get('/list-recipies', listRecipies);

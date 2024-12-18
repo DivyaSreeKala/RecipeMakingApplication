@@ -2,50 +2,76 @@
 const RecipeModel = require('../models/recipeData')
 const Wishlist = require('../models/wishlistData');
 const axios = require('axios');
+const { v2: cloudinary } = require("cloudinary");
+require('dotenv').config();
 //for admin
 // add recipe
+
+// Cloudinary Configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+
 const addRecipe = async (req, res) => {
-    try {
-      const recipeData = req.body;
-      // Validate required fields
-      if (
-        !recipeData.title ||
-        !recipeData.category ||
-        !recipeData.descriptions ||
-        !recipeData.instructions ||
-        !recipeData.ingredients ||
-        !recipeData.readyInMinutes ||
-        !recipeData.servings
-      ) {
-        return res.status(400).json({ error: 'All fields are required.' });
-      }
-  
-      // Create and save the recipe
-      const newRecipe = new RecipeModel(recipeData);
-      await newRecipe.save();
-      res.status(201).json({ message: 'Recipe added successfully!', recipe: newRecipe });
-    } catch (error) {
-      res.status(500).json({ error: 'Error adding recipe' });
-    }
-  }
 
-//for admin
-// edit a recipe
-const editRecipe = async(req, res) => {
   try {
-    const requestData = req.body;
-    const id = req.params.id;
-    const recipe = await RecipeModel.findById(id);
-    if(!recipe) {
-      return res.status(403).send({message:"Recipe does not exist"});
-    } 
-    const updatedRecipe = await RecipeModel.findByIdAndUpdate(id, requestData);
-    res.status(200).send({message:"Recipe successfully updated"});
-  }catch (err) {
-    res.status(404).send({message:"error in updation"});
-  }
-  }
+    const { title, category, descriptions, instructions, vegetarian, cookingTime, servings, veryPopular } =
+      req.body;
+    let readyInMinutes = cookingTime;
+    // Validate and parse ingredients
+    let ingredients = [];
+    try {
+      ingredients = JSON.parse(req.body.ingredients || "[]"); // Safely parse JSON
+    } catch (error) {
+      return res.status(400).json({ success: false, message: "Invalid ingredients JSON format" });
+    }
 
+    // Upload recipe image to Cloudinary
+    const recipeImage = req.files["recipeImage"]?.[0];
+    const recipeImageResult = await cloudinary.uploader.upload(recipeImage.path, {
+      folder: "recipes",
+    });
+
+    // Upload ingredient images to Cloudinary
+    const ingredientImages = req.files["ingredientImages"] || [];
+    const ingredientImageResults = await Promise.all(
+      ingredientImages.map((file) =>
+        cloudinary.uploader.upload(file.path, { folder: "ingredients" })
+      )
+    );
+
+    // Map uploaded ingredient images to ingredient data
+    ingredients = ingredients.map((ingredient, index) => ({
+      ...ingredient,
+      image: ingredientImageResults[index]?.secure_url || "",
+    }));
+
+    // Create a new recipe object
+    const newRecipe = new RecipeModel({
+      title,
+      category: category.split(","),
+      descriptions,
+      instructions,
+      vegetarian: vegetarian === "true", // Handle boolean input
+      readyInMinutes,
+      servings,
+      image: recipeImageResult.secure_url, // Recipe image URL
+      ingredients, // Array of ingredients with image URLs
+      veryPopular: veryPopular === "true",
+    });
+
+    // Save to MongoDB
+    await newRecipe.save();
+
+    res.status(200).json({ success: true, data: newRecipe });
+  } catch (error) {
+    console.error("Error adding recipe:", error);
+    res.status(500).json({ success: false, message: "Failed to add recipe." });
+  }
+}
 //admin, user
 // get all recipies
 
@@ -315,7 +341,11 @@ const getRecipeByName = async(req, res) => {
   }
 }
 
+const dbRecipe= async(req,res)=>{
+  
+}
 
-module.exports = {addRecipe, getRecipeByIngredients, editRecipe, listRecipies,
+
+module.exports = {addRecipe, getRecipeByIngredients, listRecipies,
                    getRecipeById, getRecipeByCategory, getRecipesPopular,
                     getRecipeByName}

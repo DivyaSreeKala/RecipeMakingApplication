@@ -56,7 +56,7 @@ const AdminPage = () => {
                 >
                     <Box className="modal-box">
                         <iframe
-                            src="/Add" // Replace with your URL
+                            src="/Add"
                             title="Add New Recipe"
                             style={{ width: '100%', height: '100%', border: 'none' }}
                         ></iframe>

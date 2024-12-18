@@ -1,51 +1,61 @@
-import React from 'react';
-import { FaTrashAlt, FaEdit } from 'react-icons/fa'; // Import icons
-import './RecipeTable.css'
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import "./RecipeTable.css";
 
-const RecipeTable = () => {
-  const recipes = [
-    { name: 'Salad', image: 'salad.jpg', time: '10 min', likes: 60 },
-    { name: 'Soup', image: 'soup.jpg', time: '30 min', likes: 50 },
-    { name: 'Ice cream', image: 'icecream.jpg', time: '60 min', likes: 100 },
-    { name: 'Biriyani', image: 'biriyani.jpg', time: '90 min', likes: 150 },
-    { name: 'Noodles', image: 'noodles.jpg', time: '15 min', likes: 250 },
-    { name: 'Pizza', image: 'pizza.jpg', time: '20 min', likes: 30 },
-    { name: 'Burger', image: 'burger.jpg', time: '15 min', likes: 100 },
-    { name: 'Ice cream', image: 'icecream.jpg', time: '60 min', likes: 100 },
-    { name: 'Biriyani', image: 'biriyani.jpg', time: '90 min', likes: 150 },
-    { name: 'Noodles', image: 'noodles.jpg', time: '15 min', likes: 250 },
-  ];
+const RecipeList = () => {
+  const [recipes, setRecipes] = useState([]);
+
+  // Fetch recipes from the server
+  useEffect(() => {
+    const fetchRecipes = async () => {
+      try {
+        const response = await axios.get("http://localhost:5000/recipe/dbRecipies");
+        if (response.data.success) {
+          setRecipes(response.data.data);
+        } else {
+          console.error("Error fetching recipes:", response.data.message);
+        }
+      } catch (error) {
+        console.error("Error fetching recipes:", error);
+      }
+    };
+
+    fetchRecipes();
+  }, []);
 
   return (
-    
-      <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Image</th>
-              <th>Cooking time</th>
-              <th>Likes</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recipes.map((recipe, index) => (
-              <tr key={index}>
-                <td>{recipe.name}</td>
-                <td>
-                  <img src={`images/${recipe.image}`} alt={recipe.name} />
-                </td>
-                <td>{recipe.time}</td>
-                <td>{recipe.likes}</td>
-                <td>
-                  <button className="edit-btn"> <FaEdit /></button>
-                  <button className="delete-btn"><FaTrashAlt /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="recipe-list-container">
+      <h2>Recipe List</h2>
+      <div className="recipe-list">
+        {recipes.length === 0 ? (
+          <p>No recipes found.</p>
+        ) : (
+          recipes.map((recipe) => (
+            <div key={recipe._id} className="recipe-card">
+              <img
+                src={recipe.image} // Use the image URL
+                alt={recipe.title}
+                className="recipe-image"
+                style={{ width: "200px", height: "200px", objectFit: "cover" }}
+              />
+              <h3>{recipe.title}</h3>
+              <p><strong>Ready in:</strong> {recipe.readyInMinutes} minutes</p>
+
+              {/* Ingredients */}
+              <h4>Ingredients</h4>
+              <ul>
+                {recipe.ingredients.map((ingredient, index) => (
+                  <li key={index}>
+                    {ingredient.name} - {ingredient.amount} {ingredient.unit}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
   );
 };
 
-export default RecipeTable;
+export default RecipeList;
