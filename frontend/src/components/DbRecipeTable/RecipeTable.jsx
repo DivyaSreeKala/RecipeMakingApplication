@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import AddRecipeForm from "../../pages/AddRecipe"; // Assuming AddRecipeForm is the form component
 import "./RecipeTable.css";
 
 const RecipeList = () => {
   const [recipes, setRecipes] = useState([]);
+  const [editingRecipe, setEditingRecipe] = useState(null); // Track the recipe being edited
 
-  // Fetch recipes from the server
   useEffect(() => {
+    // Fetch recipes when the component is mounted
     const fetchRecipes = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/recipe/dbRecipies");
+        const response = await axios.get("http://localhost:5000/recipe/dbRecipe");
         if (response.data.success) {
           setRecipes(response.data.data);
         } else {
@@ -23,37 +25,75 @@ const RecipeList = () => {
     fetchRecipes();
   }, []);
 
+  const handleDelete = async (id) => {
+    try {
+      // Send DELETE request to backend to delete the recipe
+      const response = await axios.delete(`http://localhost:5000/recipe/delete/${id}`);
+      
+      if (response.status === 200) {
+        // Remove deleted recipe from the state
+        setRecipes(recipes.filter((recipe) => recipe._id !== id));
+        alert("Recipe deleted successfully!");
+      }
+    } catch (error) {
+      console.error("Error deleting recipe:", error);
+      alert("Failed to delete recipe.");
+    }
+  };
+
+  // Function to handle editing a recipe
+  const handleEdit = (recipe) => {
+    setEditingRecipe(recipe); // Set the recipe to be edited
+  };
+
   return (
     <div className="recipe-list-container">
       <h2>Recipe List</h2>
-      <div className="recipe-list">
-        {recipes.length === 0 ? (
-          <p>No recipes found.</p>
-        ) : (
-          recipes.map((recipe) => (
-            <div key={recipe._id} className="recipe-card">
-              <img
-                src={recipe.image} // Use the image URL
-                alt={recipe.title}
-                className="recipe-image"
-                style={{ width: "200px", height: "200px", objectFit: "cover" }}
-              />
-              <h3>{recipe.title}</h3>
-              <p><strong>Ready in:</strong> {recipe.readyInMinutes} minutes</p>
-
-              {/* Ingredients */}
-              <h4>Ingredients</h4>
-              <ul>
-                {recipe.ingredients.map((ingredient, index) => (
-                  <li key={index}>
-                    {ingredient.name} - {ingredient.amount} {ingredient.unit}
-                  </li>
+      
+      {/* Show the AddRecipeForm for editing if editingRecipe is set */}
+      {editingRecipe ? (
+        <AddRecipeForm
+          initialRecipe={editingRecipe} // Pass the initial recipe data
+          setEditingRecipe={setEditingRecipe} // Allow the form to clear the editing state
+          setRecipes={setRecipes} // Update the recipes list after editing
+        />
+      ) : (
+        <div>
+          {recipes.length === 0 ? (
+            <p>No recipes found.</p>
+          ) : (
+            <table className="recipe-table">
+              <thead>
+                <tr>
+                  <th>Image</th>
+                  <th>Recipe</th>
+                  <th>Category</th>
+                  <th>Ingredients</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recipes.map((recipe) => (
+                  <tr key={recipe._id}>
+                    <td>
+                      <img src={recipe.image} alt={recipe.title} />
+                    </td>
+                    <td>{recipe.title}</td>
+                    <td>{recipe.category.join(", ")}</td>
+                    <td>{recipe.ingredients.map((ingredient) => ingredient.name).join(", ")}</td>
+                    <td>
+                      <div className="button-group">
+                        <button onClick={() => handleEdit(recipe)}>Update</button>
+                        <button onClick={() => handleDelete(recipe._id)}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
-              </ul>
-            </div>
-          ))
-        )}
-      </div>
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
     </div>
   );
 };

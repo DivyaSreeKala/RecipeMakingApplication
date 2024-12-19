@@ -4,7 +4,7 @@ const router = express.Router();
 const authMiddleware = require('../middleware/auth')
 const { userRegistration, login, viewProfile, updateProfile} = require('../controller/userController.js')
 const userModel = require('../models/userData.js');
-const {addRecipe, getRecipeByIngredients, listRecipies, getRecipeById, getRecipeByCategory, getRecipesPopular, getRecipeByName} = require('../controller/recipeController.js');
+const {addRecipe,dbRecipe,deleteRecipe,updateRecipe, getRecipeByIngredients, listRecipies, getRecipeById, getRecipeByCategory, getRecipesPopular, getRecipeByName} = require('../controller/recipeController.js');
 const {addWishlistRecipe, listWishlistRecipe} = require('../controller/wishlistController.js');
 const  uploadFields  = require('../middleware/uploadFields');
 
@@ -29,5 +29,8 @@ router.post('/add-wishlist', authMiddleware('user'), addWishlistRecipe);
 router.get('/wishlist-recipies', authMiddleware('user'), listWishlistRecipe);
 router.get('/view-profile', authMiddleware('user'), viewProfile);
 router.put('/update-profile', authMiddleware('user'), updateProfile);
+router.get('/dbRecipe',dbRecipe)
+router.delete('/delete/:id', deleteRecipe);
+router.put("/update/:id", updateRecipe);
 
 module.exports = router;

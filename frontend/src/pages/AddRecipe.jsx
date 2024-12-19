@@ -1,8 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import "../styles/AddRecipe.css";
 
-const AddRecipeForm = () => {
+
+
+const AddRecipeForm = ({ initialRecipe, setEditingRecipe, setRecipes }) => {
   const [recipeImage, setRecipeImage] = useState(null);
   const [ingredients, setIngredients] = useState([
     { name: "", unit: "", amount: "", image: null },
@@ -14,10 +16,37 @@ const AddRecipeForm = () => {
     instructions: "",
     analyzedInstructions: "",
     vegetarian: false,
-    cookingTime: "",
+    readyInMinutes: "",
     servings: "",
-    veryPopular: false, // Added veryPopular field
+    veryPopular: false,
   });
+
+  // Load data for updating recipe if recipeToEdit is provided
+  useEffect(() => {
+    if (initialRecipe) {
+      setFormData({
+        title: initialRecipe.title,
+        category: initialRecipe.category.join(", "),
+        descriptions: initialRecipe.descriptions,
+        instructions: initialRecipe.instructions,
+        analyzedInstructions: initialRecipe.analyzedInstructions,
+        vegetarian: initialRecipe.vegetarian,
+        readyInMinutes: initialRecipe.readyInMinutes,
+        servings: initialRecipe.servings,
+        veryPopular: initialRecipe.veryPopular,
+      });
+
+      setIngredients(
+        initialRecipe.ingredients.map((ingredient) => ({
+          name: ingredient.name,
+          unit: ingredient.unit,
+          amount: ingredient.amount,
+          image: null, // We don't pre-load ingredient images for update
+        }))
+      );
+      setRecipeImage(initialRecipe.recipeImage); // Set the existing recipe image if any
+    }
+  }, [initialRecipe]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -38,7 +67,10 @@ const AddRecipeForm = () => {
   };
 
   const handleAddIngredient = () => {
-    setIngredients([...ingredients, { name: "", unit: "", amount: "", image: null }]);
+    setIngredients([
+      ...ingredients,
+      { name: "", unit: "", amount: "", image: null },
+    ]);
   };
 
   const handleRemoveIngredient = (index) => {
@@ -48,12 +80,14 @@ const AddRecipeForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+    
     try {
       const submissionData = new FormData();
 
       // Append recipe image
-      submissionData.append("recipeImage", recipeImage);
+      if (recipeImage) {
+        submissionData.append("recipeImage", recipeImage);
+      }
 
       // Append ingredient images
       ingredients.forEach((ingredient, index) => {
@@ -70,22 +104,35 @@ const AddRecipeForm = () => {
         submissionData.append(key, formData[key]);
       });
 
+      // Check if we're updating or adding a new recipe
+      const url = initialRecipe
+        ? `http://localhost:5000/recipe/update/${initialRecipe._id}`
+        : "http://localhost:5000/recipe/add-recipe";
+
+      const method = initialRecipe ? "put" : "post";
+
       // Submit the form
-      const response = await axios.post("http://localhost:5000/recipe/add-recipe", submissionData, {
+      const response = await axios({
+        method,
+        url,
+        data: submissionData,
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      alert("Recipe added successfully!");
+      alert(`Recipe ${initialRecipe ? "updated" : "added"} successfully!`);
       console.log(response.data);
+    
     } catch (error) {
-      console.error("Error adding recipe:", error);
-      alert("Failed to add recipe.");
+      console.error("Error adding/updating recipe:", error);
+      alert("Failed to add/update recipe.");
     }
   };
 
   return (
     <div className="add-recipe-form-container">
-      <h2 className="form-title">Add New Recipe</h2>
+      <h2 className="form-title">
+        {initialRecipe ? "Update Recipe" : "Add New Recipe"}
+      </h2>
       <form className="add-recipe-form" onSubmit={handleSubmit} encType="multipart/form-data">
         <div className="form-group">
           <label htmlFor="title">Title</label>
@@ -161,12 +208,12 @@ const AddRecipeForm = () => {
         </div>
 
         <div className="form-group">
-          <label htmlFor="cookingTime">Cooking Time (in minutes)</label>
+          <label htmlFor="readyInMinutes">Cooking Time (in minutes)</label>
           <input
             type="number"
-            name="cookingTime"
-            id="cookingTime"
-            value={formData.cookingTime}
+            name="readyInMinutes"
+            id="readyInMinutes"
+            value={formData.readyInMinutes}
             onChange={handleInputChange}
             required
           />
@@ -192,7 +239,6 @@ const AddRecipeForm = () => {
             id="recipeImage"
             onChange={handleRecipeImageChange}
             accept="image/*"
-            required
           />
         </div>
 
@@ -252,7 +298,7 @@ const AddRecipeForm = () => {
         </div>
 
         <button type="submit" className="submit-btn">
-          Add Recipe
+          {initialRecipe ? "Update Recipe" : "Add Recipe"}
         </button>
       </form>
     </div>
